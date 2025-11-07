@@ -27,11 +27,18 @@ router.post('/:id/feedback', protect, async (req, res) => {
             return res.status(403).json({ message: 'Only registered participants can submit feedback' });
         }
 
+        // Check if user already submitted feedback
+        const existingFeedback = await Feedback.findOne({ userId, eventId });
+        if (existingFeedback) {
+            return res.status(400).json({ message: 'You have already submitted feedback for this event' });
+        }
+
         await Feedback.create({ userId, eventId, rating, comment });
         await updateEventAnalytics(eventId);
 
         res.json({ message: 'Feedback submitted successfully' });
     } catch (err) {
+        console.log(err.message);
         res.status(500).json({ message: 'Error submitting feedback', error: err.message });
     }
 });

@@ -65,4 +65,9 @@ export const eventService = {
         const response = await api.get(`/analytics/${eventId}/analytics`);
         return response.data;
     },
+
+    async updateAnalytics(eventId) {
+        const response = await api.post(`/analytics/${eventId}/analytics/update`);
+        return response.data;
+    },
 };

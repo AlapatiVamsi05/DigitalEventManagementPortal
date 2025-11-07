@@ -17,6 +17,11 @@ const analyticsSchema = new mongoose.Schema({
         default: 0,
         min: [0, 'Total check-ins cannot be negative']
     },
+    totalFeedbacks: {
+        type: Number,
+        default: 0,
+        min: [0, 'Total feedbacks cannot be negative']
+    },
     averageRating: {
         type: Number,
         default: 0,

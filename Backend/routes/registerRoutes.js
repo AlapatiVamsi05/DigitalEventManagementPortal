@@ -49,6 +49,7 @@ router.post('/:id/otp', protect, authorizeRoles('organizer', 'admin', 'owner'), 
 
         res.json({ message: 'OTP generated successfully', otp });
     } catch (err) {
+        console.log(err.message)
         res.status(500).json({ message: 'Error generating OTP', error: err.message });
     }
 });

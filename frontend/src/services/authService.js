@@ -2,13 +2,19 @@ import api from './api';
 
 export const authService = {
     async login(identifier, password) {
-        const response = await api.post('/auth/login', { identifier, password });
-        if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+        try {
+            const response = await api.post('/auth/login', { identifier, password });
+            if (response.data.token) {
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('user', JSON.stringify(response.data.user));
+            }
+            return response.data;
+        } catch (error) {
+            // Explicitly rethrow so Login page can toast the error
+            throw error.response?.data || error;
         }
-        return response.data;
     },
+
 
     async register(username, email, password) {
         const response = await api.post('/auth/register', { username, email, password });

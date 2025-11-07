@@ -21,17 +21,59 @@ const Login = () => {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        console.log('='.repeat(50));
+        console.log('🔐 LOGIN ATTEMPT STARTED');
+        console.log('Identifier:', formData.identifier);
+        console.log('Password exists:', !!formData.password);
+        console.log('Current loading state:', loading);
+        console.log('='.repeat(50));
+
+        if (loading) {
+            console.log('⚠️ ALREADY LOADING - ABORTING');
+            return;
+        }
+
         setLoading(true);
+        console.log('✅ Loading state set to TRUE');
 
         try {
-            await login(formData.identifier, formData.password);
+            console.log('📡 CALLING LOGIN FUNCTION...');
+            const result = await login(formData.identifier, formData.password);
+            console.log('✅ LOGIN SUCCESSFUL!');
+            console.log('Result:', result);
+
             toast.success('Login successful!');
-            navigate('/');
+            console.log('✅ Success toast displayed');
+
+            setTimeout(() => {
+                console.log('🔄 Navigating to home...');
+                navigate('/');
+            }, 500);
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Login failed');
-        } finally {
+            console.log('='.repeat(50));
+            console.log('❌ ERROR CAUGHT IN LOGIN COMPONENT');
+            console.log('Error object:', error);
+            console.log('Error.response:', error.response);
+            console.log('Error.response.data:', error.response?.data);
+            console.log('Error.message:', error.message);
+            console.log('='.repeat(50));
+
+            const errorMessage = error.response?.data?.message || error.message || 'Login failed. Please try again.';
+            console.log('📢 ERROR MESSAGE TO DISPLAY:', errorMessage);
+
+            console.log('🔔 Calling toast.error...');
+            toast.error(errorMessage);
+
+            console.log('✅ Toast.error called');
+
             setLoading(false);
+            console.log('✅ Loading state set to FALSE');
+            console.log('='.repeat(50));
         }
     };
 
@@ -46,7 +88,7 @@ const Login = () => {
                                 <p className="text-muted">Login to manage your events</p>
                             </div>
 
-                            <Form onSubmit={handleSubmit}>
+                            <Form noValidate onSubmit={handleSubmit}>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Email or Username</Form.Label>
                                     <Form.Control
@@ -55,6 +97,7 @@ const Login = () => {
                                         placeholder="Enter your email or username"
                                         value={formData.identifier}
                                         onChange={handleChange}
+                                        autoComplete="username" // helps prevent autofill issues
                                         required
                                     />
                                 </Form.Group>
@@ -67,12 +110,14 @@ const Login = () => {
                                         placeholder="Enter your password"
                                         value={formData.password}
                                         onChange={handleChange}
+                                        autoComplete="current-password"
                                         required
                                     />
                                 </Form.Group>
 
                                 <Button
-                                    type="submit"
+                                    type="button"
+                                    onClick={handleSubmit}
                                     variant="primary"
                                     className="w-100"
                                     size="lg"
@@ -80,7 +125,9 @@ const Login = () => {
                                 >
                                     {loading ? <Spinner animation="border" size="sm" /> : 'Login'}
                                 </Button>
+
                             </Form>
+
 
                             <div className="text-center mt-3">
                                 <p className="mb-0">

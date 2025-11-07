@@ -14,9 +14,14 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (identifier, password) => {
-        const data = await authService.login(identifier, password);
-        setUser(data.user);
-        return data;
+        try {
+            const data = await authService.login(identifier, password);
+            setUser(data.user);
+            return data;
+        } catch (error) {
+            // Re-throw the error so Login component can catch it
+            throw error;
+        }
     };
 
     const register = async (username, email, password) => {

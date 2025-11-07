@@ -7,14 +7,17 @@ const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 
 
-router.get('/:id/analytics', protect, authorizeRoles('organizer', 'admin', 'owner'), async (req, res) => {
+router.get('/:id/analytics', protect, async (req, res) => {
     try {
         const event = await Event.findById(req.params.id);
         if (!event) return res.status(404).json({ message: 'Event not found' });
 
-        if (event.hostId.toString() !== req.user._id.toString() &&
-            req.user.role !== 'admin' &&
-            req.user.role !== 'owner') {
+        // Allow access to: event host, admin, or owner
+        const isHost = event.hostId.toString() === req.user._id.toString();
+        const isAdmin = req.user.role === 'admin';
+        const isOwner = req.user.role === 'owner';
+
+        if (!isHost && !isAdmin && !isOwner) {
             return res.status(403).json({ message: 'You do not have permission to view analytics for this event' });
         }
 
