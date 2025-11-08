@@ -25,9 +25,9 @@ router.patch('/events/:id/approve', protect, authorizeRoles('admin', 'owner'), a
         event.isApproved = true;
         await event.save();
 
-        // Send approval email to host
+        // Send approval email to host asynchronously
         if (event.hostId && event.hostId.email) {
-            await sendEventApprovalEmail(event.hostId, event);
+            sendEventApprovalEmail(event.hostId, event).catch(err => console.error('Email error:', err));
         }
 
         res.json({ message: 'Event approved successfully', event });
@@ -45,9 +45,9 @@ router.patch('/events/:id/reject', protect, authorizeRoles('admin', 'owner'), as
         event.isApproved = false;
         await event.save();
 
-        // Send rejection email to host
+        // Send rejection email to host asynchronously
         if (event.hostId && event.hostId.email) {
-            await sendEventRejectionEmail(event.hostId, event);
+            sendEventRejectionEmail(event.hostId, event).catch(err => console.error('Email error:', err));
         }
 
         res.json({ message: 'Event rejected', event });
@@ -91,9 +91,9 @@ router.patch('/users/:id/promote-admin', protect, authorizeRoles('admin', 'owner
         user.role = 'admin';
         await user.save();
 
-        // Send role change email
+        // Send role change email asynchronously
         if (oldRole !== 'admin') {
-            await sendRoleChangeEmail(user, 'admin', req.user.username);
+            sendRoleChangeEmail(user, 'admin', req.user.username).catch(err => console.error('Email error:', err));
         }
 
         res.json({ message: 'User promoted to admin successfully', user: user.toJSON() });
@@ -120,9 +120,9 @@ router.patch('/users/:id/promote-organizer', protect, authorizeRoles('admin', 'o
         user.role = 'organizer';
         await user.save();
 
-        // Send role change email
+        // Send role change email asynchronously
         if (oldRole !== 'organizer') {
-            await sendRoleChangeEmail(user, 'organizer', req.user.username);
+            sendRoleChangeEmail(user, 'organizer', req.user.username).catch(err => console.error('Email error:', err));
         }
 
         res.json({ message: 'User promoted to organizer successfully', user: user.toJSON() });
@@ -149,9 +149,9 @@ router.patch('/users/:id/demote', protect, authorizeRoles('admin', 'owner'), asy
         user.role = 'user';
         await user.save();
 
-        // Send role change email
+        // Send role change email asynchronously
         if (oldRole !== 'user') {
-            await sendRoleChangeEmail(user, 'user', req.user.username);
+            sendRoleChangeEmail(user, 'user', req.user.username).catch(err => console.error('Email error:', err));
         }
 
         res.json({ message: 'User demoted to regular user successfully', user: user.toJSON() });
@@ -188,10 +188,10 @@ router.delete('/events/:id', protect, authorizeRoles('admin', 'owner'), async (r
             return res.status(403).json({ message: 'Admins cannot delete events created by owner' });
         }
 
-        // Send deletion emails to all participants
+        // Send deletion emails to all participants asynchronously
         const participants = event.participants.map(p => p.userId).filter(u => u);
         if (participants.length > 0) {
-            await sendEventDeletionEmail(event, participants);
+            sendEventDeletionEmail(event, participants).catch(err => console.error('Email error:', err));
         }
 
         await event.deleteOne();

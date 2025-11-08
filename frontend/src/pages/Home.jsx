@@ -19,8 +19,17 @@ const Home = () => {
     const fetchEvents = async () => {
         try {
             const data = await eventService.getAllEvents();
-            setEvents(data);
+            // Ensure data is an array
+            if (Array.isArray(data)) {
+                setEvents(data);
+            } else {
+                console.error('Invalid data format:', data);
+                setEvents([]);
+                toast.error('Failed to load events - invalid data format');
+            }
         } catch (error) {
+            console.error('Error fetching events:', error);
+            setEvents([]);
             toast.error('Failed to load events');
         } finally {
             setLoading(false);

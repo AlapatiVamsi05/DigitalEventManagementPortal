@@ -89,10 +89,10 @@ router.put('/:id', protect, async (req, res) => {
         Object.assign(event, req.body);
         await event.save();
 
-        // Send update emails to all participants
+        // Send update emails to all participants asynchronously
         const participants = event.participants.map(p => p.userId).filter(u => u);
         if (participants.length > 0) {
-            await sendEventUpdateEmail(event, participants);
+            sendEventUpdateEmail(event, participants).catch(err => console.error('Email error:', err));
         }
 
         res.json({ message: 'Event updated', event });
@@ -119,10 +119,10 @@ router.delete('/:id', protect, async (req, res) => {
             return res.status(403).json({ message: 'You do not have permission to delete this event' });
         }
 
-        // Send deletion emails to all participants
+        // Send deletion emails to all participants asynchronously
         const participants = event.participants.map(p => p.userId).filter(u => u);
         if (participants.length > 0) {
-            await sendEventDeletionEmail(event, participants);
+            sendEventDeletionEmail(event, participants).catch(err => console.error('Email error:', err));
         }
 
         await event.deleteOne();

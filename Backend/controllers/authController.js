@@ -23,8 +23,8 @@ exports.registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({ username, email, password: hashedPassword });
 
-    // Send registration email
-    await sendRegistrationEmail(user);
+    // Send registration email asynchronously (don't wait)
+    sendRegistrationEmail(user).catch(err => console.error('Email error:', err));
 
     const token = generateToken(user._id, user.role);
     res.status(201).json({ token, user });
@@ -48,9 +48,6 @@ exports.loginUser = async (req, res) => {
       console.log("wrong p");
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-
-    // Send login notification email
-    await sendLoginEmail(user);
 
     const token = generateToken(user._id, user.role);
     res.json({ token, user });

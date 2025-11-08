@@ -25,10 +25,10 @@ router.post('/:id/register', protect, async (req, res) => {
         await event.save();
         await updateEventAnalytics(event._id);
 
-        // Get user details and send confirmation email
+        // Get user details and send confirmation email asynchronously
         const user = await User.findById(userId);
         if (user) {
-            await sendEventRegistrationEmail(user, event, ticketId);
+            sendEventRegistrationEmail(user, event, ticketId).catch(err => console.error('Email error:', err));
         }
 
         res.json({ message: 'Registered successfully', ticketId });
