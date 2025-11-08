@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { Navbar as BSNavbar, Container, Nav, Button } from 'react-bootstrap';
+import './Navbar.css';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
@@ -14,10 +15,14 @@ const Navbar = () => {
     };
 
     return (
-        <BSNavbar bg="primary" variant="dark" expand="lg" className="mb-3">
+        <BSNavbar bg="primary" variant="dark" expand="lg" className="mb-3 custom-navbar">
             <Container>
-                <BSNavbar.Brand as={Link} to="/">
-                    Event Portal
+                <BSNavbar.Brand as={Link} to="/" className="navbar-brand-custom">
+                    <img 
+                        src="/images/logo.png" 
+                        alt="Event Portal Logo" 
+                        className="navbar-logo"
+                    />
                 </BSNavbar.Brand>
                 <BSNavbar.Toggle aria-controls="basic-navbar-nav" />
                 <BSNavbar.Collapse id="basic-navbar-nav">
