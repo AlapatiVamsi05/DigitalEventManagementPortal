@@ -33,6 +33,7 @@ router.post('/:id/register', protect, async (req, res) => {
 
         res.json({ message: 'Registered successfully', ticketId });
     } catch (err) {
+        console.log(err.message);
         res.status(500).json({ message: 'Error registering for event', error: err.message });
     }
 });

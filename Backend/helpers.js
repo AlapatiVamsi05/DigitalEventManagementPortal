@@ -70,7 +70,16 @@ const isUserRegistered = async (eventId, userId) => {
 // validates registration
 const isRegistrationOpen = (event) => {
     const now = new Date();
-    return now >= event.regStartDateTime && now <= event.regEndDateTime;
+    const isOpen = now >= event.regStartDateTime && now <= event.regEndDateTime;
+
+    // Debug logging
+    console.log('Registration Check:');
+    console.log('  Current time:', now);
+    console.log('  Reg Start:', event.regStartDateTime);
+    console.log('  Reg End:', event.regEndDateTime);
+    console.log('  Is Open:', isOpen);
+
+    return isOpen;
 };
 
 

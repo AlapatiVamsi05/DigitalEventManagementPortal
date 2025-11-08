@@ -47,9 +47,13 @@ const sendRegistrationEmail = async (user) => {
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log('Registration email sent to:', user.email);
+        console.log('✅ Registration email sent successfully to:', user.email);
     } catch (error) {
-        console.error('Error sending registration email:', error);
+        console.error('❌ Error sending registration email to:', user.email);
+        console.error('Error details:', error.message);
+        if (error.response) {
+            console.error('SMTP Response:', error.response);
+        }
     }
 };
 
@@ -170,26 +174,39 @@ const sendBulkEventReminders = async (hoursBeforeEvent) => {
         const User = require('../models/User');
 
         const now = new Date();
-        const targetTime = new Date(now.getTime() + hoursBeforeEvent * 60 * 60 * 1000);
+        let events;
 
-        // Find events starting within the target timeframe (±30 minutes window)
-        const windowStart = new Date(targetTime.getTime() - 30 * 60 * 1000);
-        const windowEnd = new Date(targetTime.getTime() + 30 * 60 * 1000);
+        // Handle live events (hoursBeforeEvent = 0)
+        if (hoursBeforeEvent === 0) {
+            // Find events that are currently happening
+            events = await Event.find({
+                isApproved: true,
+                startDateTime: { $lte: now },
+                endDateTime: { $gte: now }
+            }).populate('participants.userId');
+        } else {
+            // Handle future events with time window
+            const targetTime = new Date(now.getTime() + hoursBeforeEvent * 60 * 60 * 1000);
+            const windowStart = new Date(targetTime.getTime() - 30 * 60 * 1000);
+            const windowEnd = new Date(targetTime.getTime() + 30 * 60 * 1000);
 
-        const events = await Event.find({
-            isApproved: true,
-            startDateTime: {
-                $gte: windowStart,
-                $lte: windowEnd
-            }
-        }).populate('participants.userId');
+            events = await Event.find({
+                isApproved: true,
+                startDateTime: {
+                    $gte: windowStart,
+                    $lte: windowEnd
+                }
+            }).populate('participants.userId');
+        }
 
         let emailsSent = 0;
 
         for (const event of events) {
-            const timeLabel = hoursBeforeEvent >= 1
-                ? `${hoursBeforeEvent} hour${hoursBeforeEvent > 1 ? 's' : ''}`
-                : `${hoursBeforeEvent * 60} minutes`;
+            const timeLabel = hoursBeforeEvent === 0
+                ? 'now - Event is Live!'
+                : hoursBeforeEvent >= 1
+                    ? `${hoursBeforeEvent} hour${hoursBeforeEvent > 1 ? 's' : ''}`
+                    : `${hoursBeforeEvent * 60} minutes`;
 
             for (const participant of event.participants) {
                 if (participant.userId && participant.userId.email) {
@@ -199,7 +216,8 @@ const sendBulkEventReminders = async (hoursBeforeEvent) => {
             }
         }
 
-        console.log(`Sent ${emailsSent} reminder emails for events starting in ${hoursBeforeEvent} hours`);
+        const eventType = hoursBeforeEvent === 0 ? 'live events' : `events starting in ${hoursBeforeEvent} hours`;
+        console.log(`Sent ${emailsSent} reminder emails for ${eventType}`);
         return emailsSent;
     } catch (error) {
         console.error('Error sending bulk reminders:', error);

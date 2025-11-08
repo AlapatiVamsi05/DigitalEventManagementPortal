@@ -89,9 +89,9 @@ const eventSchema = new mongoose.Schema({
         required: [true, 'Registration end date and time is required'],
         validate: {
             validator: function (value) {
-                return value > this.regStartDateTime && value <= this.startDateTime;
+                return value > this.regStartDateTime;
             },
-            message: 'Registration end date must be after registration start and before event start'
+            message: 'Registration end date must be after registration start'
         }
     },
     registrationDeadline: {

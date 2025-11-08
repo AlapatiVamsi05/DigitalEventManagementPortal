@@ -14,7 +14,8 @@ const EventReminders = () => {
         { value: 6, label: '6 hours' },
         { value: 3, label: '3 hours' },
         { value: 1, label: '1 hour' },
-        { value: 10 / 60, label: '10 minutes' }
+        { value: 10 / 60, label: '10 minutes' },
+        { value: 0, label: 'Live Events (happening now)' }
     ];
 
     const handleIntervalToggle = (value) => {
@@ -100,7 +101,11 @@ const EventReminders = () => {
                                 onChange={() => handleIntervalToggle(interval.value)}
                                 style={{ marginRight: '10px', cursor: 'pointer' }}
                             />
-                            <span>{interval.label} before event</span>
+                            <span>
+                                {interval.value === 0
+                                    ? interval.label
+                                    : `${interval.label} before event`}
+                            </span>
                         </label>
                     ))}
                 </div>
