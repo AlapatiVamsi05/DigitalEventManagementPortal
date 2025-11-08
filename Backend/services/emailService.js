@@ -29,11 +29,16 @@ const transporter = nodemailer.createTransport(buildTransportOptions());
 
 // Helper: send promises in limited-size concurrent batches to avoid sequential waits
 const sendInBatches = async (tasks, batchSize = 10) => {
+    const results = [];
     for (let i = 0; i < tasks.length; i += batchSize) {
         const batch = tasks.slice(i, i + batchSize).map((t) => t());
         // wait for the batch to settle before continuing (prevents floods and respects rate limits)
-        await Promise.allSettled(batch);
+        // collect settled results to allow counting successes/failures
+        // eslint-disable-next-line no-await-in-loop
+        const settled = await Promise.allSettled(batch);
+        results.push(...settled);
     }
+    return results;
 };
 
 // Generate confirmation token (simple approach)
@@ -43,7 +48,6 @@ const generateConfirmToken = (userId, action) => {
 
 // Send registration confirmation email
 const sendRegistrationEmail = async (user) => {
-    const transporter = createTransporter();
     const declineToken = generateConfirmToken(user._id, 'register_decline');
     const declineUrl = `${process.env.BACKEND_URL}/api/email/decline-registration?token=${declineToken}`;
 
@@ -84,7 +88,6 @@ const sendRegistrationEmail = async (user) => {
 
 // Send login notification email
 const sendLoginEmail = async (user) => {
-    const transporter = createTransporter();
     const declineToken = generateConfirmToken(user._id, 'login_decline');
     const declineUrl = `${process.env.BACKEND_URL}/api/email/decline-login?token=${declineToken}`;
 
@@ -120,7 +123,6 @@ const sendLoginEmail = async (user) => {
 
 // Send event registration confirmation email
 const sendEventRegistrationEmail = async (user, event, ticketId) => {
-    const transporter = createTransporter();
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -157,7 +159,6 @@ const sendEventRegistrationEmail = async (user, event, ticketId) => {
 
 // Send event reminder email
 const sendEventReminderEmail = async (user, event, timeRemaining) => {
-    const transporter = createTransporter();
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -226,6 +227,7 @@ const sendBulkEventReminders = async (hoursBeforeEvent) => {
 
         let emailsSent = 0;
 
+        const tasks = [];
         for (const event of events) {
             const timeLabel = hoursBeforeEvent === 0
                 ? 'now - Event is Live!'
@@ -235,11 +237,15 @@ const sendBulkEventReminders = async (hoursBeforeEvent) => {
 
             for (const participant of event.participants) {
                 if (participant.userId && participant.userId.email) {
-                    await sendEventReminderEmail(participant.userId, event, timeLabel);
-                    emailsSent++;
+                    // push a task function that returns a promise when executed
+                    tasks.push(() => sendEventReminderEmail(participant.userId, event, timeLabel));
                 }
             }
         }
+
+        const batchSize = parseInt(process.env.EMAIL_BATCH_SIZE, 10) || 10;
+        const results = await sendInBatches(tasks, batchSize);
+        emailsSent = results.filter(r => r.status === 'fulfilled').length;
 
         const eventType = hoursBeforeEvent === 0 ? 'live events' : `events starting in ${hoursBeforeEvent} hours`;
         console.log(`Sent ${emailsSent} reminder emails for ${eventType}`);
@@ -252,8 +258,7 @@ const sendBulkEventReminders = async (hoursBeforeEvent) => {
 
 // Send event update notification to participants
 const sendEventUpdateEmail = async (event, participants) => {
-    const transporter = createTransporter();
-
+    const tasks = [];
     for (const participant of participants) {
         if (participant && participant.email) {
             const mailOptions = {
@@ -280,20 +285,24 @@ const sendEventUpdateEmail = async (event, participants) => {
         `
             };
 
-            try {
-                await transporter.sendMail(mailOptions);
-                console.log(`Event update email sent to: ${participant.email}`);
-            } catch (error) {
-                console.error('Error sending event update email:', error);
-            }
+            tasks.push(async () => {
+                try {
+                    await transporter.sendMail(mailOptions);
+                    console.log(`Event update email sent to: ${participant.email}`);
+                } catch (error) {
+                    console.error('Error sending event update email to', participant.email, error?.message || error);
+                }
+            });
         }
     }
+
+    const batchSize = parseInt(process.env.EMAIL_BATCH_SIZE, 10) || 10;
+    await sendInBatches(tasks, batchSize);
 };
 
 // Send event deletion notification to participants
 const sendEventDeletionEmail = async (event, participants) => {
-    const transporter = createTransporter();
-
+    const tasks = [];
     for (const participant of participants) {
         if (participant && participant.email) {
             const mailOptions = {
@@ -319,19 +328,23 @@ const sendEventDeletionEmail = async (event, participants) => {
         `
             };
 
-            try {
-                await transporter.sendMail(mailOptions);
-                console.log(`Event deletion email sent to: ${participant.email}`);
-            } catch (error) {
-                console.error('Error sending event deletion email:', error);
-            }
+            tasks.push(async () => {
+                try {
+                    await transporter.sendMail(mailOptions);
+                    console.log(`Event deletion email sent to: ${participant.email}`);
+                } catch (error) {
+                    console.error('Error sending event deletion email to', participant.email, error?.message || error);
+                }
+            });
         }
     }
+
+    const batchSize = parseInt(process.env.EMAIL_BATCH_SIZE, 10) || 10;
+    await sendInBatches(tasks, batchSize);
 };
 
 // Send event approval notification to host
 const sendEventApprovalEmail = async (host, event) => {
-    const transporter = createTransporter();
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -367,7 +380,6 @@ const sendEventApprovalEmail = async (host, event) => {
 
 // Send event rejection notification to host
 const sendEventRejectionEmail = async (host, event) => {
-    const transporter = createTransporter();
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -401,7 +413,6 @@ const sendEventRejectionEmail = async (host, event) => {
 
 // Send role change notification to user
 const sendRoleChangeEmail = async (user, newRole, changedBy) => {
-    const transporter = createTransporter();
 
     const roleColors = {
         owner: '#f44336',
