@@ -1,14 +1,39 @@
 const nodemailer = require('nodemailer');
 
-// Create transporter
-const createTransporter = () => {
-    return nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
+// Create a single, pooled transporter for reuse (faster than creating a new one per email)
+const buildTransportOptions = () => {
+    const opts = {
+        pool: true,
+        maxConnections: parseInt(process.env.EMAIL_MAX_CONNECTIONS, 10) || 5,
+        maxMessages: parseInt(process.env.EMAIL_MAX_MESSAGES, 10) || 100,
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASSWORD
         }
-    });
+    };
+
+    // Prefer explicit SMTP host/port if provided (recommended on production)
+    if (process.env.EMAIL_HOST) {
+        opts.host = process.env.EMAIL_HOST;
+        if (process.env.EMAIL_PORT) opts.port = parseInt(process.env.EMAIL_PORT, 10);
+        opts.secure = process.env.EMAIL_SECURE === 'true';
+    } else {
+        // fallback to nodemailer service shorthand (e.g., 'gmail') if host isn't provided
+        opts.service = process.env.EMAIL_SERVICE || 'gmail';
+    }
+
+    return opts;
+};
+
+const transporter = nodemailer.createTransport(buildTransportOptions());
+
+// Helper: send promises in limited-size concurrent batches to avoid sequential waits
+const sendInBatches = async (tasks, batchSize = 10) => {
+    for (let i = 0; i < tasks.length; i += batchSize) {
+        const batch = tasks.slice(i, i + batchSize).map((t) => t());
+        // wait for the batch to settle before continuing (prevents floods and respects rate limits)
+        await Promise.allSettled(batch);
+    }
 };
 
 // Generate confirmation token (simple approach)
