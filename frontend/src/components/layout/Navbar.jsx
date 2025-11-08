@@ -19,7 +19,7 @@ const Navbar = () => {
             <Container>
                 <BSNavbar.Brand as={Link} to="/" className="navbar-brand-custom">
                     <img 
-                        src="/images/logo.png" 
+                        src="/assets/logo.jpg" 
                         alt="Event Portal Logo" 
                         className="navbar-logo"
                     />
