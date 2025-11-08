@@ -1,0 +1,52 @@
+.custom-navbar {
+    min-height: 70px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand-custom {
+    padding: 5px 0;
+    display: flex;
+    align-items: center;
+}
+
+.navbar-logo {
+    height: 40px;
+    width: auto;
+    max-width: 200px;
+    object-fit: contain;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.navbar-logo:hover {
+    opacity: 0.9;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .custom-navbar {
+        min-height: 60px;
+    }
+    
+    .navbar-logo {
+        height: 35px;
+        max-width: 180px;
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar-logo {
+        height: 30px;
+        max-width: 150px;
+    }
+}
+
+/* Ensure proper alignment with other navbar items */
+.navbar-nav .nav-link {
+    display: flex;
+    align-items: center;
+}
+
+/* Maintain bootstrap primary color consistency */
+.bg-primary {
+    background-color: #0d6efd !important;
+}
