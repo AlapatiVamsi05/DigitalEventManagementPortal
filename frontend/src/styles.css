@@ -33,6 +33,11 @@
     --radius-xl: 1rem;
 
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Gradient backgrounds */
+    --gradient-light: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    --gradient-light-alt: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    --gradient-primary: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
 }
 
 * {
@@ -46,19 +51,16 @@ body {
         'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: var(--bg-secondary);
+    background: var(--gradient-light);
     color: var(--text-primary);
     line-height: 1.6;
-}
-
-code {
-    font-family: 'Courier New', monospace;
 }
 
 #root {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background: var(--gradient-light-alt);
 }
 
 /* Scrollbar Styling */

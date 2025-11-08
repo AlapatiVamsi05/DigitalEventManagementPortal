@@ -22,9 +22,9 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="app">
+        <div className="app animated-gradient-bg-alt" style={{ minHeight: '100vh' }}>
           <Navbar />
-          <main className="main-content">
+          <main className="main-content animated-gradient-bg" style={{ flexGrow: 1, padding: '20px 0' }}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/events" element={<Home />} />

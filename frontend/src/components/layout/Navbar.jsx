@@ -18,11 +18,7 @@ const Navbar = () => {
         <BSNavbar bg="primary" variant="dark" expand="lg" className="mb-3 custom-navbar">
             <Container>
                 <BSNavbar.Brand as={Link} to="/" className="navbar-brand-custom">
-                    <img 
-                        src="/assets/logo.jpg" 
-                        alt="Event Portal Logo" 
-                        className="navbar-logo"
-                    />
+                    <h1>Eventra</h1>
                 </BSNavbar.Brand>
                 <BSNavbar.Toggle aria-controls="basic-navbar-nav" />
                 <BSNavbar.Collapse id="basic-navbar-nav">
