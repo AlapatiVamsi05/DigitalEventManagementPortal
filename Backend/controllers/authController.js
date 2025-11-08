@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { sendRegistrationEmail, sendLoginEmail } = require('../services/emailService');
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -22,6 +23,9 @@ exports.registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({ username, email, password: hashedPassword });
 
+    // Send registration email
+    await sendRegistrationEmail(user);
+
     const token = generateToken(user._id, user.role);
     res.status(201).json({ token, user });
   } catch (error) {
@@ -32,9 +36,7 @@ exports.registerUser = async (req, res) => {
 // Login (accepts username or email)
 exports.loginUser = async (req, res) => {
   try {
-    const { identifier, password } = req.body; // identifier can be username or email
-
-    // Find user by email or username
+    const { identifier, password } = req.body;
     const user = await User.findOne({
       $or: [{ email: identifier }, { username: identifier }]
     });
@@ -46,6 +48,9 @@ exports.loginUser = async (req, res) => {
       console.log("wrong p");
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    // Send login notification email
+    await sendLoginEmail(user);
 
     const token = generateToken(user._id, user.role);
     res.json({ token, user });
@@ -73,7 +78,6 @@ exports.updateProfile = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Check if username is being changed and if it's already taken
     if (username && username !== user.username) {
       const usernameExists = await User.findOne({ username });
       if (usernameExists) {
@@ -82,7 +86,6 @@ exports.updateProfile = async (req, res) => {
       user.username = username;
     }
 
-    // Update fields if provided
     if (bio !== undefined) user.bio = bio;
     if (skills !== undefined) user.skills = skills;
     if (experience !== undefined) user.experience = experience;
@@ -104,16 +107,13 @@ exports.updatePassword = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) return res.status(401).json({ message: 'Current password is incorrect' });
 
-    // Validate new password length
     if (newPassword.length < 6) {
       return res.status(400).json({ message: 'New password must be at least 6 characters' });
     }
 
-    // Hash and update password
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 

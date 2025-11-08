@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const User = require('../models/User');
 const { generateTicketId, generateOTP, updateEventAnalytics, isUserRegistered, isRegistrationOpen } = require('../helpers');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
+const { sendEventRegistrationEmail } = require('../services/emailService');
 
 // register an user for an event
 router.post('/:id/register', protect, async (req, res) => {
@@ -22,6 +24,12 @@ router.post('/:id/register', protect, async (req, res) => {
         event.participants.push({ userId, ticketId });
         await event.save();
         await updateEventAnalytics(event._id);
+
+        // Get user details and send confirmation email
+        const user = await User.findById(userId);
+        if (user) {
+            await sendEventRegistrationEmail(user, event, ticketId);
+        }
 
         res.json({ message: 'Registered successfully', ticketId });
     } catch (err) {

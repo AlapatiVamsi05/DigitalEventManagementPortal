@@ -60,4 +60,34 @@ export const adminService = {
         const response = await api.get('/admin/admins');
         return response.data;
     },
+
+    async getAllMessages() {
+        const response = await api.get('/messages');
+        return response.data;
+    },
+
+    async getDeletionRequests() {
+        const response = await api.get('/messages/deletion-requests');
+        return response.data;
+    },
+
+    async executeDeletionRequest(messageId) {
+        const response = await api.delete(`/messages/deletion-request/${messageId}/execute`);
+        return response.data;
+    },
+
+    async dismissDeletionRequest(messageId) {
+        const response = await api.patch(`/messages/deletion-request/${messageId}/dismiss`);
+        return response.data;
+    },
+
+    async deleteMessage(messageId) {
+        const response = await api.delete(`/messages/${messageId}`);
+        return response.data;
+    },
+
+    async sendEventReminders(hours) {
+        const response = await api.post('/email/send-reminders', { hours });
+        return response.data;
+    },
 };

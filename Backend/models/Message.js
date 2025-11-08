@@ -13,6 +13,21 @@ const messageSchema = new mongoose.Schema({
         minlength: [10, 'Message must be at least 10 characters'],
         maxlength: [2000, 'Message cannot exceed 2000 characters']
     },
+    type: {
+        type: String,
+        enum: ['general', 'account_deletion_request'],
+        default: 'general'
+    },
+    requestType: {
+        type: String,
+        enum: ['register_decline', 'login_decline', null],
+        default: null
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'resolved'],
+        default: 'pending'
+    },
     submittedAt: {
         type: Date,
         default: Date.now

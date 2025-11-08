@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Event = require('../models/Event');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
+const { sendEventApprovalEmail, sendEventRejectionEmail, sendRoleChangeEmail, sendEventDeletionEmail } = require('../services/emailService');
 
 // Get all pending events (admin and owner only)
 router.get('/events/pending', protect, authorizeRoles('admin', 'owner'), async (req, res) => {
@@ -18,11 +19,17 @@ router.get('/events/pending', protect, authorizeRoles('admin', 'owner'), async (
 // Approve event (admin and owner only)
 router.patch('/events/:id/approve', protect, authorizeRoles('admin', 'owner'), async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id);
+        const event = await Event.findById(req.params.id).populate('hostId');
         if (!event) return res.status(404).json({ message: 'Event not found' });
 
         event.isApproved = true;
         await event.save();
+
+        // Send approval email to host
+        if (event.hostId && event.hostId.email) {
+            await sendEventApprovalEmail(event.hostId, event);
+        }
+
         res.json({ message: 'Event approved successfully', event });
     } catch (err) {
         res.status(500).json({ message: 'Error approving event', error: err.message });
@@ -32,11 +39,17 @@ router.patch('/events/:id/approve', protect, authorizeRoles('admin', 'owner'), a
 // Reject/Disapprove event (admin and owner only)
 router.patch('/events/:id/reject', protect, authorizeRoles('admin', 'owner'), async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id);
+        const event = await Event.findById(req.params.id).populate('hostId');
         if (!event) return res.status(404).json({ message: 'Event not found' });
 
         event.isApproved = false;
         await event.save();
+
+        // Send rejection email to host
+        if (event.hostId && event.hostId.email) {
+            await sendEventRejectionEmail(event.hostId, event);
+        }
+
         res.json({ message: 'Event rejected', event });
     } catch (err) {
         res.status(500).json({ message: 'Error rejecting event', error: err.message });
@@ -74,8 +87,15 @@ router.patch('/users/:id/promote-admin', protect, authorizeRoles('admin', 'owner
             return res.status(400).json({ message: 'Cannot modify owner role' });
         }
 
+        const oldRole = user.role;
         user.role = 'admin';
         await user.save();
+
+        // Send role change email
+        if (oldRole !== 'admin') {
+            await sendRoleChangeEmail(user, 'admin', req.user.username);
+        }
+
         res.json({ message: 'User promoted to admin successfully', user: user.toJSON() });
     } catch (err) {
         res.status(500).json({ message: 'Error promoting user', error: err.message });
@@ -96,8 +116,15 @@ router.patch('/users/:id/promote-organizer', protect, authorizeRoles('admin', 'o
             return res.status(403).json({ message: 'Only owner can modify admin role' });
         }
 
+        const oldRole = user.role;
         user.role = 'organizer';
         await user.save();
+
+        // Send role change email
+        if (oldRole !== 'organizer') {
+            await sendRoleChangeEmail(user, 'organizer', req.user.username);
+        }
+
         res.json({ message: 'User promoted to organizer successfully', user: user.toJSON() });
     } catch (err) {
         res.status(500).json({ message: 'Error promoting user', error: err.message });
@@ -118,8 +145,15 @@ router.patch('/users/:id/demote', protect, authorizeRoles('admin', 'owner'), asy
             return res.status(403).json({ message: 'Only owner can demote admin' });
         }
 
+        const oldRole = user.role;
         user.role = 'user';
         await user.save();
+
+        // Send role change email
+        if (oldRole !== 'user') {
+            await sendRoleChangeEmail(user, 'user', req.user.username);
+        }
+
         res.json({ message: 'User demoted to regular user successfully', user: user.toJSON() });
     } catch (err) {
         res.status(500).json({ message: 'Error demoting user', error: err.message });
@@ -146,12 +180,18 @@ router.delete('/users/:id', protect, authorizeRoles('owner'), async (req, res) =
 // Delete any event (admin and owner only, but admin cannot delete owner's events)
 router.delete('/events/:id', protect, authorizeRoles('admin', 'owner'), async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id).populate('hostId', 'role');
+        const event = await Event.findById(req.params.id).populate('hostId', 'role').populate('participants.userId');
         if (!event) return res.status(404).json({ message: 'Event not found' });
 
         // Admin cannot delete owner's events
         if (req.user.role === 'admin' && event.hostId.role === 'owner') {
             return res.status(403).json({ message: 'Admins cannot delete events created by owner' });
+        }
+
+        // Send deletion emails to all participants
+        const participants = event.participants.map(p => p.userId).filter(u => u);
+        if (participants.length > 0) {
+            await sendEventDeletionEmail(event, participants);
         }
 
         await event.deleteOne();

@@ -33,7 +33,11 @@ const Navbar = () => {
                                 <Nav.Link as={Link} to="/my-events">My Events</Nav.Link>
                                 <Nav.Link as={Link} to="/create-event">Create Event</Nav.Link>
                                 {(user.role === 'admin' || user.role === 'owner') && (
-                                    <Nav.Link as={Link} to="/admin">Admin</Nav.Link>
+                                    <>
+                                        <Nav.Link as={Link} to="/admin">Admin</Nav.Link>
+                                        <Nav.Link as={Link} to="/messages">Messages</Nav.Link>
+                                        <Nav.Link as={Link} to="/event-reminders">Event Reminders</Nav.Link>
+                                    </>
                                 )}
                                 <Nav.Link as={Link} to="/profile">Profile</Nav.Link>
                                 <Nav.Link className="text-light">Welcome, {user.username}</Nav.Link>

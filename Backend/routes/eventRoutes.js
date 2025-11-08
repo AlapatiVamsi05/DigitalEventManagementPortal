@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const User = require('../models/User');
 const { hasEventStarted } = require('../helpers');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
+const { sendEventUpdateEmail, sendEventDeletionEmail } = require('../services/emailService');
 
 // get all events
 router.get('/all', async (req, res) => {
@@ -71,7 +73,7 @@ router.get('/:id', async (req, res) => {
 // update event (host, admin, or owner)
 router.put('/:id', protect, async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id);
+        const event = await Event.findById(req.params.id).populate('participants.userId');
         if (!event) return res.status(404).json({ message: 'Event not found' });
 
         // Only host, admin, or owner can update
@@ -86,6 +88,13 @@ router.put('/:id', protect, async (req, res) => {
 
         Object.assign(event, req.body);
         await event.save();
+
+        // Send update emails to all participants
+        const participants = event.participants.map(p => p.userId).filter(u => u);
+        if (participants.length > 0) {
+            await sendEventUpdateEmail(event, participants);
+        }
+
         res.json({ message: 'Event updated', event });
     } catch (err) {
         res.status(500).json({ message: 'Error updating event', error: err.message });
@@ -95,7 +104,7 @@ router.put('/:id', protect, async (req, res) => {
 // delete event (host, admin, or owner)
 router.delete('/:id', protect, async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id).populate('hostId', 'role');
+        const event = await Event.findById(req.params.id).populate('hostId', 'role').populate('participants.userId');
         if (!event) return res.status(404).json({ message: 'Event not found' });
 
         // Admin cannot delete owner's events
@@ -108,6 +117,12 @@ router.delete('/:id', protect, async (req, res) => {
             req.user.role !== 'admin' &&
             req.user.role !== 'owner') {
             return res.status(403).json({ message: 'You do not have permission to delete this event' });
+        }
+
+        // Send deletion emails to all participants
+        const participants = event.participants.map(p => p.userId).filter(u => u);
+        if (participants.length > 0) {
+            await sendEventDeletionEmail(event, participants);
         }
 
         await event.deleteOne();
