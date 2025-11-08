@@ -9,7 +9,7 @@ const { sendEventApprovalEmail, sendEventRejectionEmail, sendRoleChangeEmail, se
 // Get all pending events (admin and owner only)
 router.get('/events/pending', protect, authorizeRoles('admin', 'owner'), async (req, res) => {
     try {
-        const pendingEvents = await Event.find({ isApproved: false }).populate('hostId', 'username email');
+        const pendingEvents = await Event.find({ isApproved: false }).populate('hostId', 'username email role');
         res.json(pendingEvents);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching pending events', error: err.message });

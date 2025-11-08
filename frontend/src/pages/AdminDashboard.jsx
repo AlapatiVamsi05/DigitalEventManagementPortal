@@ -17,6 +17,7 @@ const AdminDashboard = () => {
     const [allUsers, setAllUsers] = useState([]);
     const [organizers, setOrganizers] = useState([]);
     const [admins, setAdmins] = useState([]);
+    const [userSearchQuery, setUserSearchQuery] = useState('');
 
     // Modal states
     const [showUserModal, setShowUserModal] = useState(false);
@@ -151,6 +152,12 @@ const AdminDashboard = () => {
         }
     };
 
+    // Filter users based on search query
+    const filteredUsers = allUsers.filter(user =>
+        user.username.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+    );
+
     if (loading) {
         return (
             <Container className="py-5 text-center">
@@ -212,7 +219,7 @@ const AdminDashboard = () => {
                                 <thead>
                                     <tr>
                                         <th>Title</th>
-                                        <th>Host</th>
+                                        <th>Host Info</th>
                                         <th>Location</th>
                                         <th>Start Date</th>
                                         <th>Actions</th>
@@ -222,7 +229,19 @@ const AdminDashboard = () => {
                                     {pendingEvents.map((event) => (
                                         <tr key={event._id}>
                                             <td>{event.title}</td>
-                                            <td>{event.hostId?.username || 'N/A'}</td>
+                                            <td>
+                                                <div>
+                                                    <strong>{event.hostId?.username || 'N/A'}</strong>
+                                                    <br />
+                                                    <small className="text-muted">{event.hostId?.email || 'N/A'}</small>
+                                                    <br />
+                                                    {event.hostId && (
+                                                        <Badge bg={getRoleBadgeVariant(event.hostId.role)} className="mt-1">
+                                                            {event.hostId.role?.toUpperCase()}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td>{event.location}</td>
                                             <td>{event.startDateTime ? format(new Date(event.startDateTime), 'PP') : 'TBA'}</td>
                                             <td>
@@ -273,8 +292,26 @@ const AdminDashboard = () => {
                         <h5 className="mb-0">All Users</h5>
                     </Card.Header>
                     <Card.Body>
-                        {allUsers.length === 0 ? (
-                            <p className="text-muted">No users found</p>
+                        {/* Search Box */}
+                        <Form.Group className="mb-3">
+                            <Form.Control
+                                type="text"
+                                placeholder="Search by username or email..."
+                                value={userSearchQuery}
+                                onChange={(e) => setUserSearchQuery(e.target.value)}
+                                size="lg"
+                            />
+                            {userSearchQuery && (
+                                <small className="text-muted">
+                                    Found {filteredUsers.length} user(s)
+                                </small>
+                            )}
+                        </Form.Group>
+
+                        {filteredUsers.length === 0 ? (
+                            <p className="text-muted">
+                                {userSearchQuery ? 'No users found matching your search' : 'No users found'}
+                            </p>
                         ) : (
                             <Table responsive striped hover>
                                 <thead>
@@ -287,7 +324,7 @@ const AdminDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {allUsers.map((userItem) => (
+                                    {filteredUsers.map((userItem) => (
                                         <tr key={userItem._id}>
                                             <td>{userItem.username}</td>
                                             <td>{userItem.email}</td>
@@ -391,79 +428,204 @@ const AdminDashboard = () => {
             )}
 
             {/* User Management Modal */}
-            <Modal show={showUserModal} onHide={() => setShowUserModal(false)}>
+            <Modal show={showUserModal} onHide={() => setShowUserModal(false)} size="lg">
                 <Modal.Header closeButton>
-                    <Modal.Title>Manage User</Modal.Title>
+                    <Modal.Title>User Details & Management</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto' }}>
                     {selectedUser && (
                         <div>
-                            <h5>{selectedUser.username}</h5>
-                            <p className="text-muted">{selectedUser.email}</p>
-                            <Badge bg={getRoleBadgeVariant(selectedUser.role)} className="mb-3">
-                                Current Role: {selectedUser.role.toUpperCase()}
-                            </Badge>
+                            {/* Basic Info Card */}
+                            <Card className="mb-3">
+                                <Card.Body>
+                                    <Row>
+                                        <Col md={8}>
+                                            <h5>{selectedUser.username}</h5>
+                                            <p className="text-muted mb-1">
+                                                <strong>Email:</strong> {selectedUser.email}
+                                            </p>
+                                            <p className="text-muted mb-1">
+                                                <strong>User ID:</strong> <small>{selectedUser._id}</small>
+                                            </p>
+                                            <p className="text-muted mb-1">
+                                                <strong>Joined:</strong> {selectedUser.dateJoined ? format(new Date(selectedUser.dateJoined), 'PPP') : 'N/A'}
+                                            </p>
+                                            {selectedUser.verifiedBadge && (
+                                                <Badge bg="success" className="mt-2">
+                                                    ✓ Verified
+                                                </Badge>
+                                            )}
+                                        </Col>
+                                        <Col md={4} className="text-end">
+                                            <Badge bg={getRoleBadgeVariant(selectedUser.role)} style={{ fontSize: '1.2rem', padding: '10px 20px' }}>
+                                                {selectedUser.role.toUpperCase()}
+                                            </Badge>
+                                        </Col>
+                                    </Row>
+                                </Card.Body>
+                            </Card>
 
-                            <div className="d-grid gap-2">
-                                {selectedUser.role === 'user' && (
-                                    <>
-                                        <Button
-                                            variant="primary"
-                                            onClick={() => handlePromoteToAdmin(selectedUser._id)}
-                                        >
-                                            Promote to Admin
-                                        </Button>
-                                        <Button
-                                            variant="info"
-                                            onClick={() => handlePromoteToOrganizer(selectedUser._id)}
-                                        >
-                                            Promote to Organizer
-                                        </Button>
-                                    </>
-                                )}
-                                {selectedUser.role === 'organizer' && (
-                                    <>
-                                        <Button
-                                            variant="primary"
-                                            onClick={() => handlePromoteToAdmin(selectedUser._id)}
-                                        >
-                                            Promote to Admin
-                                        </Button>
-                                        <Button
-                                            variant="warning"
-                                            onClick={() => handleDemoteUser(selectedUser._id)}
-                                        >
-                                            Demote to User
-                                        </Button>
-                                    </>
-                                )}
-                                {selectedUser.role === 'admin' && (
-                                    <>
-                                        <Button
-                                            variant="info"
-                                            onClick={() => handlePromoteToOrganizer(selectedUser._id)}
-                                            disabled={user.role !== 'owner'}
-                                        >
-                                            Change to Organizer
-                                        </Button>
-                                        <Button
-                                            variant="warning"
-                                            onClick={() => handleDemoteUser(selectedUser._id)}
-                                            disabled={user.role !== 'owner'}
-                                        >
-                                            Demote to User
-                                        </Button>
-                                    </>
-                                )}
-                                {user.role === 'owner' && selectedUser.role !== 'owner' && (
-                                    <Button
-                                        variant="danger"
-                                        onClick={() => handleDeleteUser(selectedUser._id)}
-                                    >
-                                        Delete User
-                                    </Button>
-                                )}
-                            </div>
+                            {/* Bio Section */}
+                            {selectedUser.bio && (
+                                <Card className="mb-3">
+                                    <Card.Header className="bg-light">
+                                        <strong>Bio</strong>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        <p className="mb-0">{selectedUser.bio}</p>
+                                    </Card.Body>
+                                </Card>
+                            )}
+
+                            {/* Skills Section */}
+                            {selectedUser.skills && selectedUser.skills.length > 0 && (
+                                <Card className="mb-3">
+                                    <Card.Header className="bg-light">
+                                        <strong>Skills</strong>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        <div className="d-flex flex-wrap gap-2">
+                                            {selectedUser.skills.map((skill, index) => (
+                                                <Badge key={index} bg="secondary" style={{ fontSize: '0.9rem' }}>
+                                                    {skill}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            )}
+
+                            {/* Experience Section */}
+                            {selectedUser.experience && selectedUser.experience.length > 0 && (
+                                <Card className="mb-3">
+                                    <Card.Header className="bg-light">
+                                        <strong>Experience</strong>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        {selectedUser.experience.map((exp, index) => (
+                                            <div key={index} className={index < selectedUser.experience.length - 1 ? 'mb-3 pb-3 border-bottom' : 'mb-0'}>
+                                                <h6 className="mb-1">{exp.title}</h6>
+                                                {exp.year && <small className="text-muted">Year: {exp.year}</small>}
+                                                {exp.description && <p className="mb-0 mt-2">{exp.description}</p>}
+                                            </div>
+                                        ))}
+                                    </Card.Body>
+                                </Card>
+                            )}
+
+                            {/* Portfolio Links Section */}
+                            {selectedUser.portfolioLinks && selectedUser.portfolioLinks.length > 0 && (
+                                <Card className="mb-3">
+                                    <Card.Header className="bg-light">
+                                        <strong>Portfolio Links</strong>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        <ul className="list-unstyled mb-0">
+                                            {selectedUser.portfolioLinks.map((link, index) => (
+                                                <li key={index} className="mb-2">
+                                                    <a href={link} target="_blank" rel="noopener noreferrer" className="text-primary">
+                                                        🔗 {link}
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </Card.Body>
+                                </Card>
+                            )}
+
+                            {/* Certifications Section */}
+                            {selectedUser.certifications && selectedUser.certifications.length > 0 && (
+                                <Card className="mb-3">
+                                    <Card.Header className="bg-light">
+                                        <strong>Certifications</strong>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        {selectedUser.certifications.map((cert, index) => (
+                                            <div key={index} className={index < selectedUser.certifications.length - 1 ? 'mb-3 pb-3 border-bottom' : 'mb-0'}>
+                                                <h6 className="mb-1">{cert.name}</h6>
+                                                {cert.issuedBy && <p className="text-muted mb-1"><small>Issued by: {cert.issuedBy}</small></p>}
+                                                {cert.proofUrl && (
+                                                    <a href={cert.proofUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary">
+                                                        View Proof
+                                                    </a>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </Card.Body>
+                                </Card>
+                            )}
+
+                            {/* Role Management Section */}
+                            <Card className="mb-0">
+                                <Card.Header className="bg-primary text-white">
+                                    <strong>Role Management</strong>
+                                </Card.Header>
+                                <Card.Body>
+                                    <div className="d-grid gap-2">
+                                        {selectedUser.role === 'user' && (
+                                            <>
+                                                <Button
+                                                    variant="primary"
+                                                    onClick={() => handlePromoteToAdmin(selectedUser._id)}
+                                                >
+                                                    Promote to Admin
+                                                </Button>
+                                                <Button
+                                                    variant="info"
+                                                    onClick={() => handlePromoteToOrganizer(selectedUser._id)}
+                                                >
+                                                    Promote to Organizer
+                                                </Button>
+                                            </>
+                                        )}
+                                        {selectedUser.role === 'organizer' && (
+                                            <>
+                                                <Button
+                                                    variant="primary"
+                                                    onClick={() => handlePromoteToAdmin(selectedUser._id)}
+                                                >
+                                                    Promote to Admin
+                                                </Button>
+                                                <Button
+                                                    variant="warning"
+                                                    onClick={() => handleDemoteUser(selectedUser._id)}
+                                                >
+                                                    Demote to User
+                                                </Button>
+                                            </>
+                                        )}
+                                        {selectedUser.role === 'admin' && (
+                                            <>
+                                                <Button
+                                                    variant="info"
+                                                    onClick={() => handlePromoteToOrganizer(selectedUser._id)}
+                                                    disabled={user.role !== 'owner'}
+                                                >
+                                                    Change to Organizer
+                                                </Button>
+                                                <Button
+                                                    variant="warning"
+                                                    onClick={() => handleDemoteUser(selectedUser._id)}
+                                                    disabled={user.role !== 'owner'}
+                                                >
+                                                    Demote to User
+                                                </Button>
+                                            </>
+                                        )}
+                                        {user.role === 'owner' && selectedUser.role !== 'owner' && (
+                                            <>
+                                                <hr />
+                                                <Button
+                                                    variant="danger"
+                                                    onClick={() => handleDeleteUser(selectedUser._id)}
+                                                >
+                                                    Delete User
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </Card.Body>
+                            </Card>
                         </div>
                     )}
                 </Modal.Body>
