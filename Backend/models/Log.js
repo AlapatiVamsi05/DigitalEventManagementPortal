@@ -29,13 +29,12 @@ const logSchema = new mongoose.Schema({
         default: Date.now
     }
 }, {
-    timestamps: false
+    timestamps: true // Enable timestamps to automatically add createdAt and updatedAt
 });
 
 logSchema.index({ adminId: 1 });
 
 logSchema.index({ type: 1 });
-
 
 logSchema.index({ adminId: 1, type: 1 });
 

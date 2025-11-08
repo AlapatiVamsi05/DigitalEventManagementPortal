@@ -14,6 +14,7 @@ import CreateEditEvent from './pages/CreateEditEvent';
 import MyEvents from './pages/MyEvents';
 import EventAnalytics from './pages/EventAnalytics';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminLogs from './pages/AdminLogs';
 import Messages from './pages/Messages';
 import EventReminders from './pages/EventReminders';
 
@@ -36,6 +37,7 @@ function App() {
               <Route path="/my-events" element={<MyEvents />} />
               <Route path="/events/:id/analytics" element={<EventAnalytics />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/logs" element={<AdminLogs />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/event-reminders" element={<EventReminders />} />
             </Routes>

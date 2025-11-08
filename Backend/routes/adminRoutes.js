@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Event = require('../models/Event');
+const Log = require('../models/Log');
+const { createLog, getLogs, getLogStats } = require('../services/logService');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 const { sendEventApprovalEmail, sendEventRejectionEmail, sendRoleChangeEmail, sendEventDeletionEmail } = require('../services/emailService');
@@ -30,6 +32,14 @@ router.patch('/events/:id/approve', protect, authorizeRoles('admin', 'owner'), a
             sendEventApprovalEmail(event.hostId, event).catch(err => console.error('Email error:', err));
         }
 
+        // Log the event approval
+        await createLog(
+            req.user._id,
+            `Approved event "${event.title}" (ID: ${event._id})`,
+            'event_approval',
+            event._id
+        );
+
         res.json({ message: 'Event approved successfully', event });
     } catch (err) {
         res.status(500).json({ message: 'Error approving event', error: err.message });
@@ -49,6 +59,14 @@ router.patch('/events/:id/reject', protect, authorizeRoles('admin', 'owner'), as
         if (event.hostId && event.hostId.email) {
             sendEventRejectionEmail(event.hostId, event).catch(err => console.error('Email error:', err));
         }
+
+        // Log the event rejection
+        await createLog(
+            req.user._id,
+            `Rejected event "${event.title}" (ID: ${event._id})`,
+            'event_approval',
+            event._id
+        );
 
         res.json({ message: 'Event rejected', event });
     } catch (err) {
@@ -88,15 +106,27 @@ router.patch('/users/:id/promote-admin', protect, authorizeRoles('admin', 'owner
         }
 
         const oldRole = user.role;
+
+        // Check if user is already an admin
+        if (oldRole === 'admin') {
+            return res.status(400).json({ message: 'User is already an admin' });
+        }
+
         user.role = 'admin';
         await user.save();
 
         // Send role change email asynchronously
-        if (oldRole !== 'admin') {
-            sendRoleChangeEmail(user, 'admin', req.user.username).catch(err => console.error('Email error:', err));
-        }
+        sendRoleChangeEmail(user, 'admin', req.user.username).catch(err => console.error('Email error:', err));
 
-        res.json({ message: 'User promoted to admin successfully', user: user.toJSON() });
+        // Log the user promotion
+        await createLog(
+            req.user._id,
+            `Promoted user "${user.username}" (${user.email}) from ${oldRole} to admin`,
+            'user_to_admin_approval',
+            user._id
+        );
+
+        res.json({ message: `User promoted to admin successfully from ${oldRole}`, user: user.toJSON() });
     } catch (err) {
         res.status(500).json({ message: 'Error promoting user', error: err.message });
     }
@@ -117,15 +147,27 @@ router.patch('/users/:id/promote-organizer', protect, authorizeRoles('admin', 'o
         }
 
         const oldRole = user.role;
+
+        // Check if user is already an organizer
+        if (oldRole === 'organizer') {
+            return res.status(400).json({ message: 'User is already an organizer' });
+        }
+
         user.role = 'organizer';
         await user.save();
 
         // Send role change email asynchronously
-        if (oldRole !== 'organizer') {
-            sendRoleChangeEmail(user, 'organizer', req.user.username).catch(err => console.error('Email error:', err));
-        }
+        sendRoleChangeEmail(user, 'organizer', req.user.username).catch(err => console.error('Email error:', err));
 
-        res.json({ message: 'User promoted to organizer successfully', user: user.toJSON() });
+        // Log the user promotion
+        await createLog(
+            req.user._id,
+            `Promoted user "${user.username}" (${user.email}) from ${oldRole} to organizer`,
+            'user_to_organizer_approval',
+            user._id
+        );
+
+        res.json({ message: `User promoted to organizer successfully from ${oldRole}`, user: user.toJSON() });
     } catch (err) {
         res.status(500).json({ message: 'Error promoting user', error: err.message });
     }
@@ -146,15 +188,27 @@ router.patch('/users/:id/demote', protect, authorizeRoles('admin', 'owner'), asy
         }
 
         const oldRole = user.role;
+
+        // Check if user is already a regular user
+        if (oldRole === 'user') {
+            return res.status(400).json({ message: 'User is already a regular user' });
+        }
+
         user.role = 'user';
         await user.save();
 
         // Send role change email asynchronously
-        if (oldRole !== 'user') {
-            sendRoleChangeEmail(user, 'user', req.user.username).catch(err => console.error('Email error:', err));
-        }
+        sendRoleChangeEmail(user, 'user', req.user.username).catch(err => console.error('Email error:', err));
 
-        res.json({ message: 'User demoted to regular user successfully', user: user.toJSON() });
+        // Log the user demotion
+        await createLog(
+            req.user._id,
+            `Demoted user "${user.username}" (${user.email}) from ${oldRole} to user`,
+            'other', // Using 'other' since there's no specific type for demotions
+            user._id
+        );
+
+        res.json({ message: `User demoted to regular user successfully from ${oldRole}`, user: user.toJSON() });
     } catch (err) {
         res.status(500).json({ message: 'Error demoting user', error: err.message });
     }
@@ -171,6 +225,15 @@ router.delete('/users/:id', protect, authorizeRoles('owner'), async (req, res) =
         }
 
         await user.deleteOne();
+
+        // Log the user deletion
+        await createLog(
+            req.user._id,
+            `Deleted user "${user.username}" (${user.email})`,
+            'other', // Using 'other' since there's no specific type for user deletions
+            user._id
+        );
+
         res.json({ message: 'User deleted successfully' });
     } catch (err) {
         res.status(500).json({ message: 'Error deleting user', error: err.message });
@@ -193,6 +256,14 @@ router.delete('/events/:id', protect, authorizeRoles('admin', 'owner'), async (r
         if (participants.length > 0) {
             sendEventDeletionEmail(event, participants).catch(err => console.error('Email error:', err));
         }
+
+        // Log the event deletion
+        await createLog(
+            req.user._id,
+            `Deleted event "${event.title}" (ID: ${event._id})`,
+            'event_deletion',
+            event._id
+        );
 
         await event.deleteOne();
         res.json({ message: 'Event deleted successfully' });
@@ -218,6 +289,34 @@ router.get('/admins', protect, authorizeRoles('admin', 'owner'), async (req, res
         res.json(admins);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching admins', error: err.message });
+    }
+});
+
+// Get logs (admin and owner only)
+router.get('/logs', protect, authorizeRoles('admin', 'owner'), async (req, res) => {
+    try {
+        const { type, adminId, page = 1, limit = 20 } = req.query;
+        const filters = {};
+
+        if (type) filters.type = type;
+        if (adminId) filters.adminId = adminId;
+
+        const result = await getLogs(filters, parseInt(page), parseInt(limit));
+        res.json(result);
+    } catch (err) {
+        console.error('Error in /logs endpoint:', err);
+        res.status(500).json({ message: 'Error fetching logs', error: err.message });
+    }
+});
+
+// Get log statistics (admin and owner only)
+router.get('/logs/stats', protect, authorizeRoles('admin', 'owner'), async (req, res) => {
+    try {
+        const stats = await getLogStats();
+        res.json(stats);
+    } catch (err) {
+        console.error('Error in /logs/stats endpoint:', err);
+        res.status(500).json({ message: 'Error fetching log statistics', error: err.message });
     }
 });
 
