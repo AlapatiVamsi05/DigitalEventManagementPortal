@@ -82,14 +82,18 @@ const eventSchema = new mongoose.Schema({
     regStartDateTime: {
         type: Date,
         required: false,
-        default: Date.now
+        default: function () {
+            return Date.now(); // Ensure default is properly set
+        }
     },
     regEndDateTime: {
         type: Date,
         required: [true, 'Registration end date and time is required'],
         validate: {
             validator: function (value) {
-                return value > this.regStartDateTime;
+                // If regStartDateTime exists, validate against it; otherwise validate against current date
+                const startDate = this.regStartDateTime || Date.now();
+                return value > startDate;
             },
             message: 'Registration end date must be after registration start'
         }
@@ -129,6 +133,21 @@ eventSchema.index({ 'participants.userId': 1 });
 // Ensure same user can't register twice for the same event
 // But can register for multiple different events
 eventSchema.index({ _id: 1, 'participants.userId': 1 }, { unique: true, sparse: true });
+
+// Pre-save middleware to ensure regStartDateTime is set if not provided
+eventSchema.pre('save', function (next) {
+    // If regStartDateTime is not set, default to current date
+    if (!this.regStartDateTime) {
+        this.regStartDateTime = Date.now();
+    }
+
+    // If registrationDeadline exists (from frontend), use it as regEndDateTime
+    if (this.registrationDeadline && !this.regEndDateTime) {
+        this.regEndDateTime = this.registrationDeadline;
+    }
+
+    next();
+});
 
 eventSchema.methods.generateOTP = function () {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();

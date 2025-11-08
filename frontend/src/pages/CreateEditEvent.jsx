@@ -17,7 +17,7 @@ const CreateEditEvent = () => {
         imageUrl: '',
         startDateTime: '',
         endDateTime: '',
-        registrationDeadline: '',
+        regEndDateTime: '', // Changed from registrationDeadline to regEndDateTime
         tags: ''
     });
 
@@ -42,7 +42,7 @@ const CreateEditEvent = () => {
                 imageUrl: data.imageUrl || '',
                 startDateTime: new Date(data.startDateTime).toISOString().slice(0, 16),
                 endDateTime: new Date(data.endDateTime).toISOString().slice(0, 16),
-                registrationDeadline: new Date(data.registrationDeadline || data.regEndDateTime).toISOString().slice(0, 16),
+                regEndDateTime: new Date(data.regEndDateTime || data.registrationDeadline).toISOString().slice(0, 16), // Changed field name
                 tags: data.tags?.join(', ') || ''
             });
         } catch (error) {
@@ -181,11 +181,11 @@ const CreateEditEvent = () => {
                                 </Row>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Registration Deadline *</Form.Label>
+                                    <Form.Label>Registration End Date & Time *</Form.Label> {/* Updated label */}
                                     <Form.Control
                                         type="datetime-local"
-                                        name="registrationDeadline"
-                                        value={formData.registrationDeadline}
+                                        name="regEndDateTime" // Changed from registrationDeadline to regEndDateTime
+                                        value={formData.regEndDateTime}
                                         onChange={handleChange}
                                         required
                                     />
