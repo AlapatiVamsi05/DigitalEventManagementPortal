@@ -45,8 +45,8 @@ const Home = () => {
     }
 
     return (
-        <Container fluid className="py-4 animated-gradient-bg" style={{ minHeight: '100vh' }}>
-            <div className="bg-primary text-white text-center py-5 mb-4 rounded animated-gradient-primary">
+        <Container fluid className="py-4">
+            <div className="bg-primary text-white text-center py-5 mb-4 rounded">
                 <h1 className="display-4">Digital Event Management Portal</h1>
                 <p className="lead">Discover and register for amazing events</p>
                 {user && (
@@ -80,15 +80,8 @@ const Home = () => {
                                             src={event.imageUrl}
                                             alt={event.title}
                                             style={{ height: '200px', objectFit: 'cover' }}
-                                            onError={(e) => {
-                                                e.target.style.display = 'none';
-                                            }}
+                                            onError={(e) => { e.target.style.display = 'none'; }}
                                         />
-                                    )}
-                                    {!event.imageUrl && (
-                                        <div className="bg-light d-flex align-items-center justify-content-center" style={{ height: '200px' }}>
-                                            <span className="text-muted">No Image</span>
-                                        </div>
                                     )}
                                     <Card.Body>
                                         <div className="d-flex justify-content-between align-items-start mb-2">

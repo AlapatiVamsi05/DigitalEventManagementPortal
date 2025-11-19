@@ -3,14 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { eventService } from '../services/eventService';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { Container, Row, Col, Card, Form, Button, Spinner, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Spinner } from 'react-bootstrap';
 
 const CreateEditEvent = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [eventStarted, setEventStarted] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -18,7 +17,7 @@ const CreateEditEvent = () => {
         imageUrl: '',
         startDateTime: '',
         endDateTime: '',
-        regEndDateTime: '', // Changed from registrationDeadline to regEndDateTime
+        registrationDeadline: '',
         tags: ''
     });
 
@@ -36,8 +35,6 @@ const CreateEditEvent = () => {
     const fetchEvent = async () => {
         try {
             const data = await eventService.getEventById(id);
-            const started = new Date(data.startDateTime) < new Date();
-            setEventStarted(started);
             setFormData({
                 title: data.title,
                 description: data.description,
@@ -45,14 +42,9 @@ const CreateEditEvent = () => {
                 imageUrl: data.imageUrl || '',
                 startDateTime: new Date(data.startDateTime).toISOString().slice(0, 16),
                 endDateTime: new Date(data.endDateTime).toISOString().slice(0, 16),
-                regEndDateTime: new Date(data.regEndDateTime || data.registrationDeadline).toISOString().slice(0, 16), // Changed field name
+                registrationDeadline: new Date(data.registrationDeadline || data.regEndDateTime).toISOString().slice(0, 16),
                 tags: data.tags?.join(', ') || ''
             });
-
-            // If event has started, show a warning
-            if (started) {
-                toast.info('Note: Event has already started. Only image and description can be updated.');
-            }
         } catch (error) {
             toast.error('Failed to load event');
         }
@@ -99,11 +91,6 @@ const CreateEditEvent = () => {
                             <h2 className="mb-0">{id ? 'Edit Event' : 'Create New Event'}</h2>
                         </Card.Header>
                         <Card.Body>
-                            {eventStarted && (
-                                <Alert variant="warning">
-                                    <strong>Note:</strong> This event has already started. Only the image and description can be updated.
-                                </Alert>
-                            )}
                             <Form onSubmit={handleSubmit}>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Event Title *</Form.Label>
@@ -114,7 +101,6 @@ const CreateEditEvent = () => {
                                         onChange={handleChange}
                                         required
                                         placeholder="Enter event title"
-                                        disabled={eventStarted}
                                     />
                                 </Form.Group>
 
@@ -140,7 +126,6 @@ const CreateEditEvent = () => {
                                         onChange={handleChange}
                                         required
                                         placeholder="Event venue or online link"
-                                        disabled={eventStarted}
                                     />
                                 </Form.Group>
 
@@ -156,22 +141,16 @@ const CreateEditEvent = () => {
                                     <Form.Text className="text-muted">
                                         Paste a URL to an event banner/poster image
                                     </Form.Text>
-                                    <div className="mt-2">
-                                        {formData.imageUrl ? (
+                                    {formData.imageUrl && (
+                                        <div className="mt-2">
                                             <img
                                                 src={formData.imageUrl}
                                                 alt="Event preview"
                                                 style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'cover' }}
-                                                onError={(e) => {
-                                                    e.target.style.display = 'none';
-                                                }}
+                                                onError={(e) => { e.target.style.display = 'none'; }}
                                             />
-                                        ) : (
-                                            <div className="bg-light d-flex align-items-center justify-content-center" style={{ height: '200px' }}>
-                                                <span className="text-muted">Image preview will appear here</span>
-                                            </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                 </Form.Group>
 
                                 <Row>
@@ -184,7 +163,6 @@ const CreateEditEvent = () => {
                                                 value={formData.startDateTime}
                                                 onChange={handleChange}
                                                 required
-                                                disabled={eventStarted}
                                             />
                                         </Form.Group>
                                     </Col>
@@ -197,21 +175,19 @@ const CreateEditEvent = () => {
                                                 value={formData.endDateTime}
                                                 onChange={handleChange}
                                                 required
-                                                disabled={eventStarted}
                                             />
                                         </Form.Group>
                                     </Col>
                                 </Row>
 
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Registration End Date & Time *</Form.Label> {/* Updated label */}
+                                    <Form.Label>Registration Deadline *</Form.Label>
                                     <Form.Control
                                         type="datetime-local"
-                                        name="regEndDateTime" // Changed from registrationDeadline to regEndDateTime
-                                        value={formData.regEndDateTime}
+                                        name="registrationDeadline"
+                                        value={formData.registrationDeadline}
                                         onChange={handleChange}
                                         required
-                                        disabled={eventStarted}
                                     />
                                 </Form.Group>
 
@@ -223,7 +199,6 @@ const CreateEditEvent = () => {
                                         value={formData.tags}
                                         onChange={handleChange}
                                         placeholder="workshop, tech, networking (comma separated)"
-                                        disabled={eventStarted}
                                     />
                                     <Form.Text className="text-muted">
                                         Separate tags with commas

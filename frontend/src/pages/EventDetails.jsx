@@ -149,15 +149,8 @@ const EventDetails = () => {
                                 src={event.imageUrl}
                                 alt={event.title}
                                 style={{ maxHeight: '400px', objectFit: 'cover' }}
-                                onError={(e) => {
-                                    e.target.style.display = 'none';
-                                }}
+                                onError={(e) => { e.target.style.display = 'none'; }}
                             />
-                        )}
-                        {!event.imageUrl && (
-                            <div className="bg-light d-flex align-items-center justify-content-center" style={{ height: '300px' }}>
-                                <span className="text-muted">No Event Image</span>
-                            </div>
                         )}
                         <Card.Body>
                             <div className="d-flex justify-content-between align-items-start mb-3">
@@ -173,6 +166,7 @@ const EventDetails = () => {
                                             variant="outline-primary"
                                             size="sm"
                                             onClick={() => navigate(`/events/${id}/edit`)}
+                                            disabled={eventStarted}
                                         >
                                             Edit
                                         </Button>

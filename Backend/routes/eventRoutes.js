@@ -83,24 +83,8 @@ router.put('/:id', protect, async (req, res) => {
             return res.status(403).json({ message: 'You do not have permission to update this event' });
         }
 
-        // Check if event has started
-        const eventStarted = hasEventStarted(event);
-
-        // If event has started, only allow updates to certain fields
-        if (eventStarted) {
-            // Define fields that can be updated after event start
-            const allowedFields = ['imageUrl', 'description'];
-            const updateFields = Object.keys(req.body);
-
-            // Check if all fields being updated are allowed
-            const isAllowedUpdate = updateFields.every(field => allowedFields.includes(field));
-
-            if (!isAllowedUpdate) {
-                return res.status(400).json({
-                    message: 'Event already started. Only image and description can be updated after event start.'
-                });
-            }
-        }
+        if (hasEventStarted(event))
+            return res.status(400).json({ message: 'Event already started' });
 
         Object.assign(event, req.body);
         await event.save();
